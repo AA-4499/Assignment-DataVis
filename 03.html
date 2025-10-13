@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Web Page</title>
+    <link rel="stylesheet" href="css/base.css">
+</head>
+<body>
+    <header>
+        <div w3-include-html="include/navigation.html"></div>
+    </header>
+
+    <main>
+        <h1>Welcome to My Web Page</h1>
+        <p>This is the main content of the page.</p>
+    </main>
+
+    <div w3-include-html="include/footer.html"></div>
+    
+    <script src="https://www.w3schools.com/lib/w3.js"></script>
+    <script>
+        w3.includeHTML();
+    </script>
+</body>
+</html>
