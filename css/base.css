@@ -1,12 +1,12 @@
 /* Navigation Bar */
 .navbar {
-    background: #222;
+    background: #d4cece;
     padding: 1em 0;
     text-align: center;
 }
 .navbar .nav-btn {
-    color: #fff;
-    background: #444;
+    color: #000000;
+    background: #f8f8f8;
     border: none;
     padding: 0.7em 1.5em;
     margin: 0 0.5em;
@@ -16,13 +16,13 @@
     transition: background 0.2s;
 }
 .navbar .nav-btn:hover {
-    background: #0078d7;
+    background: #b8ccdd;
 }
 
 /* Footer */
 .footer {
-    background: #222;
-    color: #fff;
+    background: #d4cece;
+    color: #000000;
     text-align: center;
     padding: 1em 0;
     position: fixed;
