@@ -141,52 +141,87 @@
     // color scale: 0 (no severe) -> 1 (all severe)
     const color = d3.scaleSequential(d3.interpolateOrRd).domain([0,1]);
 
-    // legend group
+    // legend group (keep defs created earlier)
     const legendWidth = 260, legendHeight = 10;
     const legendX = 20, legendY = height - 60;
     const defs = svg.append('defs');
     const linear = defs.append('linearGradient').attr('id','legend-grad');
+    // initial stops (will be updated inside update())
     linear.append('stop').attr('offset','0%').attr('stop-color', color(0));
     linear.append('stop').attr('offset','100%').attr('stop-color', color(1));
     const legend = svg.append('g').attr('class','choropleth-legend').attr('transform',`translate(${legendX},${legendY})`);
     legend.append('rect').attr('width', legendWidth).attr('height', legendHeight).style('fill','url(#legend-grad)').style('stroke','#999');
     const legendScale = d3.scaleLinear().domain([0,1]).range([0, legendWidth]);
     const legendAxis = d3.axisBottom(legendScale).ticks(5).tickFormat(d => d3.format('.0%')(d));
-    legend.append('g').attr('transform',`translate(0,${legendHeight})`).call(legendAxis);
-    legend.append('text').attr('x',0).attr('y',-8).text('Severe outcomes (% of enforcement)').style('font-size','12px').style('fill','#222');
+    const legendAxisG = legend.append('g').attr('transform',`translate(0,${legendHeight})`).call(legendAxis);
+    legend.append('text').attr('x',0).attr('y',-8).text('Severe outcomes (% of national enforcement)').style('font-size','12px').style('fill','#222');
 
     // update function to compute and color by selected age
     function update(age) {
         const map = dataByAge.get(age);
-        // assign properties
+
+        // compute national totals (sum across all jurisdictions for this age)
+        let nationalTotal = 0;
+        for (const [k,vals] of (map || new Map())) {
+            nationalTotal += (vals.fines + vals.arrests + vals.charges);
+        }
+        if (nationalTotal === 0 && age !== 'All ages') {
+            const fallback = dataByAge.get('All ages');
+            for (const [k,vals] of (fallback || new Map())) {
+                nationalTotal += (vals.fines + vals.arrests + vals.charges);
+            }
+        }
+        nationalTotal = nationalTotal || 1; // avoid div-by-zero
+
+        // assign properties: compute severe ratio relative to national total
         geo.features.forEach(f => {
             const k = f.properties._match;
             const vals = (k && map && map.has(k)) ? map.get(k) : {fines:0, arrests:0, charges:0};
             f.properties.fines = vals.fines;
             f.properties.arrests = vals.arrests;
             f.properties.charges = vals.charges;
-            const total = vals.fines + vals.arrests + vals.charges;
-            f.properties.severeRatio = total > 0 ? (vals.arrests + vals.charges) / total : 0;
+            const severeCount = vals.arrests + vals.charges;
+            // severeRatio is now share of national enforcement
+            f.properties.severeRatio = severeCount / nationalTotal;
+            f.properties.totalLocal = vals.fines + vals.arrests + vals.charges;
+            f.properties.nationalTotal = nationalTotal;
+            f.properties.severeCount = severeCount;
         });
-        // recolor
+
+        // compute max ratio for legend scaling
+        const maxRatio = d3.max(geo.features, d => d.properties.severeRatio) || 0.01;
+        color.domain([0, maxRatio]);
+
+        // update legend gradient stops to use current color domain
+        linear.selectAll('stop').remove();
+        linear.append('stop').attr('offset','0%').attr('stop-color', color(0));
+        linear.append('stop').attr('offset','100%').attr('stop-color', color(maxRatio));
+
+        // update legend axis domain and re-render
+        legendScale.domain([0, maxRatio]);
+        legendAxisG.call(d3.axisBottom(legendScale).ticks(5).tickFormat(d => d3.format('.2%')(d)));
+
+        // recolor map
         countries.transition().duration(400)
-            .attr('fill', d => (d.properties && (d.properties.fines+d.properties.arrests+d.properties.charges) > 0) ? color(d.properties.severeRatio) : '#eee');
+            .attr('fill', d => (d.properties && d.properties.totalLocal > 0) ? color(d.properties.severeRatio) : '#eee');
     }
 
-    // tooltip interactions
+    // tooltip interactions — show severe share of national enforcement
     countries.on('mousemove', (event,d) => {
         const x = event.pageX, y = event.pageY;
         const p = d.properties;
-        const total = p.fines + p.arrests + p.charges;
+        const total = p.totalLocal || 0;
         const pf = total ? p.fines/total : 0;
         const pa = total ? p.arrests/total : 0;
         const pc = total ? p.charges/total : 0;
+        const severeShare = p.severeRatio || 0; // share of national enforcement
         tooltip.style('left', (x+12) + 'px').style('top', (y+12) + 'px').style('opacity',1)
             .html(`<strong>${p._match || p.STATE_NAME || p.name || 'Unknown'}</strong><br/>
                    Fines: ${d3.format(',')(p.fines)} (${d3.format('.1%')(pf)})<br/>
                    Arrests: ${d3.format(',')(p.arrests)} (${d3.format('.1%')(pa)})<br/>
                    Charges: ${d3.format(',')(p.charges)} (${d3.format('.1%')(pc)})<br/>
-                   Severe / Total: ${d3.format('.1%')((p.arrests+p.charges)/(total||1))}`);
+                   Severe (Arrests+Charges): ${d3.format(',')(p.severeCount || 0)}<br/>
+                   Severe share of national enforcement: ${d3.format('.2%')(severeShare)} (${d3.format(',')(Math.round(severeShare * (p.nationalTotal || 0))) } incidents)`);
     }).on('mouseout', () => tooltip.style('opacity',0));
 
     // populate select options and wire up change
