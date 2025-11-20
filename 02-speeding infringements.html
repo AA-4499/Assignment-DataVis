@@ -32,8 +32,8 @@
                 <h2>2. Enforcement Consistency by Jurisdiction</h2>
                 <p class="section-description">Which jurisdiction shows the most consistency (or disparity) in its enforcement strategy by maintaining a similar ratio of FINES to ARRESTS and CHARGES across all reporting years?</p>
             </div>
-            <div class="visualization-container" id="viz-jurisdiction-consistency">
-                <img src="img/speeding_2_chart.png" alt="Age Group Enforcement Severity Distribution Chart" class="chart-image">
+            <div class="visualization-container" id="viz-jurisdiction-consistency" data-metric="speed_fines">
+                <!-- treemap.js will append the SVG here -->
             </div>
         </section>
 
@@ -78,9 +78,7 @@
     <!-- add D3, topojson-client and the choropleth script -->
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://unpkg.com/topojson-client@3/dist/topojson-client.min.js"></script>
-
-
-    <!-- optional choropleth (if you still want it) -->
-    <script src="js/02-speeding/choropleth.js"></script>
+    <script src="js/choropleth.js"></script>
+    <script src="js/treemap.js"></script>
 </body>
 </html>

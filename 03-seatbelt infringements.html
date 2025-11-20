@@ -22,8 +22,8 @@
                 <h2>1. Enforcement Severity by Age Group</h2>
                 <p class="section-description">How does the severity profile of enforcement—measured by the proportional distribution of FINES, ARRESTS, and CHARGES—differ between driver age group categories for seatbelt infringements?</p>
             </div>
-            <div class="visualization-container" id="viz-age-severity">
-                <img src="img/seatbelts_1_chart.png" alt="Age Group Enforcement Severity Distribution Chart" class="chart-image">
+            <div class="visualization-container" id="viz-age-severity" data-metric="non_wearing_seatbelts" aria-label="Choropleth: Seatbelt Infringements fines by jurisdiction">
+                <!-- choropleth.js will append the SVG here -->
             </div>
         </section>
 
@@ -32,8 +32,8 @@
                 <h2>2. Enforcement Consistency by Jurisdiction</h2>
                 <p class="section-description">Which jurisdiction shows the most consistency (or disparity) in its enforcement strategy by maintaining a similar ratio of FINES to ARRESTS and CHARGES across all reporting years?</p>
             </div>
-            <div class="visualization-container" id="viz-jurisdiction-consistency">
-                <img src="img/seatbelts_2_chart.png" alt="Age Group Enforcement Severity Distribution Chart" class="chart-image">
+            <div class="visualization-container" id="viz-jurisdiction-consistency" data-metric="non_wearing_seatbelts">
+                <!-- treemap.js will append the SVG here -->
             </div>
         </section>
 
@@ -74,5 +74,9 @@
     <script>
         w3.includeHTML();
     </script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/topojson-client@3/dist/topojson-client.min.js"></script>
+    <script src="js/choropleth.js"></script>
+    <script src="js/treemap.js"></script>
 </body>
 </html>
