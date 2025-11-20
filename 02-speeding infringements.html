@@ -22,8 +22,8 @@
                 <h2>1. Enforcement Severity by Age Group</h2>
                 <p class="section-description">How does the severity profile of enforcement—measured by the proportional distribution of FINES, ARRESTS, and CHARGES—differ between driver age group categories for speeding infringements?</p>
             </div>
-            <div class="visualization-container" id="viz-age-severity">
-                <img src="img/speeding_1_chart.png" alt="Age Group Enforcement Severity Distribution Chart" class="chart-image">
+            <div class="visualization-container" id="viz-age-severity" aria-label="Choropleth: Speed fines by jurisdiction">
+                <!-- choropleth.js will append the SVG here -->
             </div>
         </section>
 
@@ -74,5 +74,13 @@
     <script>
         w3.includeHTML();
     </script>
+
+    <!-- add D3, topojson-client and the choropleth script -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/topojson-client@3/dist/topojson-client.min.js"></script>
+
+
+    <!-- optional choropleth (if you still want it) -->
+    <script src="js/02-speeding/choropleth.js"></script>
 </body>
 </html>

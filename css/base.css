@@ -103,11 +103,12 @@
     border: 2px dashed #ddd;
     border-radius: 8px;
     padding: 3em 2em;
-    min-height: 400px;
+    min-height: 420px;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: background 0.3s ease;
+    position: relative;
 }
 
 .visualization-container:hover {
@@ -115,9 +116,44 @@
     border-color: #667eea;
 }
 
+.visualization-container svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
 .placeholder-text {
     color: #999;
     font-size: 1.1em;
     font-style: italic;
     text-align: center;
+}
+
+/* Choropleth Tooltip */
+.choropleth-tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: rgba(0,0,0,0.8);
+    color: #fff;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 13px;
+    line-height: 1.2;
+    opacity: 0;
+    transition: opacity 120ms;
+    z-index: 9999;
+}
+.choropleth-legend text { fill: #222; font-size: 11px; }
+
+/* Map Error */
+.map-error{
+    max-width:720px;
+    margin:1rem auto;
+    padding:1rem 1.25rem;
+    background:#fff6f6;
+    border:1px solid #f5c6cb;
+    color:#8b0000;
+    border-radius:8px;
+    text-align:center;
+    line-height:1.4;
 }
