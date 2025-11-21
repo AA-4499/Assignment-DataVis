@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Speeding Infringements Analysis</title>
+    <title>Unlicensed Driving Analysis</title>
     <link rel="stylesheet" href="css/base.css">
 </head>
 <body>
@@ -13,16 +13,16 @@
 
     <main class="content-wrapper">
         <div class="page-header">
-            <h1>Speeding Infringements Enforcement Analysis</h1>
-            <p class="page-intro">Exploring enforcement patterns, severity, and trends in speeding violations across Australia</p>
+            <h1>Unlicensed Driving Enforcement Analysis</h1>
+            <p class="page-intro">Exploring enforcement patterns, severity, and trends in unlicensed driving across Australia</p>
         </div>
 
         <section class="research-section">
             <div class="section-header">
                 <h2>1. Enforcement Severity by Age Group</h2>
-                <p class="section-description">How does the severity profile of enforcement—measured by the proportional distribution of FINES, ARRESTS, and CHARGES—differ between driver age group categories for speeding infringements?</p>
+                <p class="section-description">How does the severity profile of enforcement—measured by the proportional distribution of FINES, ARRESTS, and CHARGES—differ between driver age group categories for unlicensed driving?</p>
             </div>
-            <div class="visualization-container" id="viz-age-severity" aria-label="Choropleth: Speed fines by jurisdiction">
+            <div class="visualization-container" id="viz-age-severity" data-metric="unlicensed_driving" aria-label="Choropleth: Unlicensed driving fines by jurisdiction">
                 <!-- choropleth.js will append the SVG here -->
             </div>
         </section>
@@ -32,7 +32,7 @@
                 <h2>2. Enforcement Consistency by Jurisdiction</h2>
                 <p class="section-description">Which jurisdiction shows the most consistency (or disparity) in its enforcement strategy by maintaining a similar ratio of FINES to ARRESTS and CHARGES across all reporting years?</p>
             </div>
-            <div class="visualization-container" id="viz-jurisdiction-consistency" data-metric="speed_fines">
+            <div class="visualization-container" id="viz-jurisdiction-consistency" data-metric="unlicensed_driving">
                 <!-- treemap.js will append the SVG here -->
             </div>
         </section>
@@ -40,7 +40,7 @@
         <section class="research-section">
             <div class="section-header">
                 <h2>3. Effectiveness of Detection Method</h2>
-                <p class="section-description">For speeding infringements, how does the ratio of severe outcomes (ARRESTS and CHARGES) relative to punitive outcomes (FINES) compare between camera-based and police-issued detection method categories?</p>
+                <p class="section-description">For unlicensed driving, how does the ratio of severe outcomes (ARRESTS and CHARGES) relative to punitive outcomes (FINES) compare between different detection method categories?</p>
             </div>
             <div class="visualization-container" id="viz-detection-method">
                 <p class="placeholder-text">Visualization: Detection Method Effectiveness</p>
@@ -50,7 +50,7 @@
         <section class="research-section">
             <div class="section-header">
                 <h2>4. Temporal Trend of Severity</h2>
-                <p class="section-description">How has the balance between FINES and more severe legal actions (ARRESTS and CHARGES) changed over time for speeding infringements, and does this trend correlate with changes in enforcement volume?</p>
+                <p class="section-description">How has the balance between FINES and more severe legal actions (ARRESTS and CHARGES) changed over time for unlicensed driving, and does this trend correlate with changes in enforcement volume?</p>
             </div>
             <div class="visualization-container" id="viz-temporal-trend" aria-label="Stacked Area: ">
                 <!-- stackedareachart.js will append the SVG here -->
@@ -60,7 +60,7 @@
         <section class="research-section">
             <div class="section-header">
                 <h2>5. Comparative Offence Profile</h2>
-                <p class="section-description">How does speeding compare to other road safety offences in terms of the average frequency of the most severe outcomes (ARRESTS and CHARGES) per instance of a FINE issued across all jurisdictions?</p>
+                <p class="section-description">How does unlicensed driving compare to other road safety offences in terms of the average frequency of the most severe outcomes (ARRESTS and CHARGES) per instance of a FINE issued across all jurisdictions?</p>
             </div>
             <div class="visualization-container" id="viz-offence-comparison">
                 <p class="placeholder-text">Visualization: Cross-Offence Severity Comparison</p>
@@ -76,16 +76,15 @@
     </script>
     <script src="js/nav-active.js"></script>
 
-    <!-- add D3, topojson-client and the choropleth script -->
+    <!-- Add D3, topojson-client, and choropleth script -->
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://unpkg.com/topojson-client@3/dist/topojson-client.min.js"></script>
-    <script src="js/02-speed/choropleth.js"></script>
-    <script src="js/02-speed/treemap.js"></script>
+    <script src="js/01-unlicenesd/choropleth.js"></script>
+    <script src="js/01-unlicenesd/treemap.js"></script>
 
-
-    <!-- optional choropleth (if you still want it) -->
-    <script src="js/02-speeding/choropleth.js"></script>
-    <script src="js/02-speeding/stackareachart.js"></script>
-    <script src="js/02-speeding/groupedbarchart.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="js/01-unlicensed/stackareachart.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="js/01-unlicensed/groupedbarchart.js"></script>
 </body>
 </html>
