@@ -2,7 +2,7 @@
     const container = d3.select('#viz-jurisdiction-consistency');
     if (container.empty()) return;
     container.selectAll('*').remove();
-    const metric = 'non_wearing_seatbelts';
+    const metric = 'unlicensed_driving';
 
     const data = await d3.csv('data/police_enforcement_2024_fines.csv', d=>({
         YEAR:d.YEAR, JURISDICTION:d.JURISDICTION, METRIC:d.METRIC, FINES:+d.FINES||0, ARRESTS:+d.ARRESTS||0, CHARGES:+d.CHARGES||0
