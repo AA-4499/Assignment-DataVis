@@ -2,7 +2,9 @@
     const container = d3.select('#viz-age-severity');
     if (container.empty()) return;
     container.selectAll('*').remove();
-    const metric = 'speed_fines';
+
+    // metric fixed for this page
+    const metric = 'unlicensed_driving';
 
     // control UI
     const control = container.append('div').attr('class','map-control');

@@ -2,7 +2,7 @@
     const container = d3.select('#viz-age-severity');
     if (container.empty()) return;
     container.selectAll('*').remove();
-    const metric = 'speed_fines';
+    const metric = 'non_wearing_seatbelts';
 
     // control UI
     const control = container.append('div').attr('class','map-control');
