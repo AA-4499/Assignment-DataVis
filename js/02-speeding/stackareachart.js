@@ -67,7 +67,7 @@ async function drawTemporalTrend() {
 
     // y scale fixed to 0-100 since we display percentages per year
     const y = d3.scaleLinear()
-        .domain([0, 100])
+        .domain([0, 1])
         .range([chartHeight, 0]);
 
     const color = d3.scaleOrdinal()
