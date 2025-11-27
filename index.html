@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Web Page</title>
+    <title>Australian Road Safety Enforcement Analysis</title>
     <link rel="stylesheet" href="css/base.css">
 </head>
 <body>
@@ -11,9 +11,68 @@
         <div w3-include-html="include/navigation.html"></div>
     </header>
 
-    <main>
-        <h1>Welcome to My Web Page</h1>
-        <p>This is the main content of the page.</p>
+    <main class="content-wrapper">
+        <div class="page-header">
+            <h1>Australian Road Safety Enforcement Analysis</h1>
+            <p class="page-intro">An interactive exploration of the 2023-2024 BITRE dataset, analyzing the effectiveness of detection methods and enforcement outcomes across Australian jurisdictions.</p>
+        </div>
+
+        <section class="research-section">
+            <div class="section-header">
+                <h2>Project Overview</h2>
+            </div>
+            <p>The Bureau of Infrastructure and Transport Research Economics (BITRE) has collected road safety data since 2008. However, the introduction of granular data in 2023—including specific locations, age groups, and distinct outcomes like arrests versus fines—presents a new opportunity for analysis.</p>
+            
+            <p>Our team has developed this dashboard to bridge the gap in the current official reporting. By leveraging this new level of detail, we aim to answer critical questions about road safety enforcement:</p>
+            <ul style="margin-left: 20px; margin-bottom: 1rem;">
+                <li><strong>Demographic Impact:</strong> How does enforcement severity vary across different age groups and states?</li>
+                <li><strong>Detection Efficacy:</strong> How do Camera-based detections compare to Police-issued stops in terms of resulting charges?</li>
+                <li><strong>Jurisdictional Consistency:</strong> Are enforcement patterns consistent across Australia, or do specific states favor certain methods?</li>
+            </ul>
+        </section>
+
+        <section class="research-section">
+            <div class="section-header">
+                <h2>Our Analysis Focus</h2>
+            </div>
+            <p>We have segmented our analysis into three high-impact categories to tell a cohesive story about driver behavior and enforcement:</p>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                <div style="background: #f8f9fa; padding: 1rem; border-radius: 6px; border: 1px solid #eee;">
+                    <h3 style="margin-top: 0;">01. Unlicensed Driving</h3>
+                    <p>Examining the correlation between age groups and severe outcomes (arrests/charges) for drivers operating without a valid license.</p>
+                </div>
+                <div style="background: #f8f9fa; padding: 1rem; border-radius: 6px; border: 1px solid #eee;">
+                    <h3 style="margin-top: 0;">02. Speeding</h3>
+                    <p>Analyzing the volume of camera-detected infringements versus police stops and the resulting financial penalties.</p>
+                </div>
+                <div style="background: #f8f9fa; padding: 1rem; border-radius: 6px; border: 1px solid #eee;">
+                    <h3 style="margin-top: 0;">03. Seatbelt Offenses</h3>
+                    <p>Investigating the ratio of detection methods and how non-compliance varies by jurisdiction.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="research-section">
+            <div class="section-header">
+                <h2>Tech Stack & Resources</h2>
+            </div>
+            <p>This project was designed and built using the following technologies:</p>
+            <ul style="margin-left: 20px;">
+                <li><strong>D3.js (v7):</strong> For custom interactive visualizations including Choropleth maps, Alluvial diagrams, and Treemaps.</li>
+                <li><strong>TopoJSON:</strong> For rendering lightweight geospatial data of Australian states.</li>
+                <li><strong>HTML5 & CSS3:</strong> For a responsive, accessible layout hosted on Vercel.</li>
+                <li><strong>Data Source:</strong> <a href="https://www.bitre.gov.au/" target="_blank">Bureau of Infrastructure and Transport Research Economics (BITRE)</a>.</li>
+            </ul>
+        </section>
+
+        <section class="research-section">
+            <div class="section-header">
+                <h2>Feedback</h2>
+            </div>
+            <p>We value your input on our visualization dashboard. Please let us know if you found the insights useful or if you encountered any usability issues.</p>
+            <p>Feedback Form: <a href="">Form</a></p>
+        </section>
     </main>
 
     <div w3-include-html="include/footer.html"></div>
