@@ -4,13 +4,24 @@
     container.selectAll('*').remove();
     const metric = 'non_wearing_seatbelts';
 
-    // control UI
+    // 1. Place the filter list (control UI) inside the container first (at the top)
     const control = container.append('div').attr('class','map-control');
     control.append('label').attr('for','age-select').text('Select age group: ');
     const ageSelect = control.append('select').attr('id','age-select');
 
     const width = 960, height = 650;
-    const svg = container.append('svg').attr('viewBox', `0 0 ${width} ${height}`).style('width','100%').style('height','auto');
+    const svg = container.append('svg')
+        .attr('viewBox', `0 0 ${width} ${height}`)
+        .style('width','100%')
+        .style('height','auto');
+
+    // Add a background rect to allow clicking empty space to reset zoom
+    svg.append('rect')
+        .attr('width', width)
+        .attr('height', height)
+        .style('fill', 'none')
+        .style('pointer-events', 'all')
+        .on('click', reset);
 
     const tooltip = d3.select('body').append('div').attr('class','choropleth-tooltip').style('opacity',0).style('pointer-events','none');
 
@@ -51,7 +62,7 @@
         dataByAge.set(age, new Map(byJ));
     }
 
-    // match geo features to jurisdiction codes (same logic as original)
+    // match geo features to jurisdiction codes
     const fullToAbbr = {"New South Wales":"NSW","Victoria":"VIC","Queensland":"QLD","Western Australia":"WA","South Australia":"SA","Tasmania":"TAS","Northern Territory":"NT","Australian Capital Territory":"ACT"};
     function dataJurisdictions(){ const s=new Set(); for(const m of dataByAge.values()) for(const k of m.keys()) s.add(k); return Array.from(s); }
     function dataHasJurisdiction(k){ for(const m of dataByAge.values()) if(m.has(k)) return true; return false; }
@@ -75,7 +86,59 @@
     projection.fitSize([width,height],geo);
 
     const mapGroup = svg.append('g').attr('class','map-layer');
-    const countries = mapGroup.selectAll('path').data(geo.features).join('path').attr('d',path).attr('stroke','#333').attr('stroke-width',0.5);
+    const countries = mapGroup.selectAll('path')
+        .data(geo.features)
+        .join('path')
+        .attr('d',path)
+        .attr('stroke','#333')
+        .attr('stroke-width',0.5)
+        .style('cursor', 'pointer'); // Indicate clickable
+
+    // --- ZOOM LOGIC START ---
+    let active = d3.select(null);
+
+    function reset() {
+        active.classed("active", false);
+        active = d3.select(null);
+        
+        mapGroup.transition().duration(750)
+            .attr("transform", "");
+            
+        // Reset stroke width to avoid it looking too thin/thick
+        countries.transition().duration(750)
+            .attr("stroke-width", 0.5);
+    }
+
+    function clicked(event, d) {
+        // If clicking the already active state, zoom out (toggle)
+        if (active.node() === this) return reset();
+        
+        active.classed("active", false);
+        active = d3.select(this).classed("active", true);
+
+        const [[x0, y0], [x1, y1]] = path.bounds(d);
+        const dx = x1 - x0;
+        const dy = y1 - y0;
+        const x = (x0 + x1) / 2;
+        const y = (y0 + y1) / 2;
+        
+        // Calculate scale, clamping between 1x and 8x
+        const scale = Math.max(1, Math.min(8, 0.9 / Math.max(dx / width, dy / height)));
+        const translate = [width / 2 - scale * x, height / 2 - scale * y];
+
+        mapGroup.transition().duration(750)
+            .attr("transform", `translate(${translate})scale(${scale})`);
+            
+        // Adjust stroke width so borders don't get huge when zoomed
+        countries.transition().duration(750)
+            .attr("stroke-width", 0.5 / scale);
+            
+        // Stop propagation so the background click listener doesn't immediately reset
+        event.stopPropagation();
+    }
+
+    countries.on("click", clicked);
+    // --- ZOOM LOGIC END ---
 
     const color = d3.scaleSequential(d3.interpolateOrRd).domain([0,1]);
     const defs = svg.append('defs');

@@ -216,3 +216,18 @@ html, body {
     .content-wrapper { padding: 1rem; }
     .visualization-container { padding: 1rem; min-height: 360px; }
 }
+
+/* D3 Tooltip */
+.d3-tooltip {
+    position: absolute;
+    text-align: center;
+    padding: 8px;
+    font: 12px sans-serif;
+    background: white;
+    border: 1px solid #aaa;
+    border-radius: 4px;
+    pointer-events: none;
+    box-shadow: 2px 2px 6px rgba(0,0,0,0.2);
+    opacity: 0;
+    z-index: 10;
+}
