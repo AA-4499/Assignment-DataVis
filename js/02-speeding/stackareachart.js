@@ -1,59 +1,49 @@
 // stackedareachart.js
 async function drawTemporalTrend() {
-
     const data = await d3.csv("data/police_enforcement_2024_fines.csv", d3.autoType);
 
-    // ---- 1. Filter to SPEEDING infringements ----
+    // ---- 1. Prepare aggregated data by YEAR ----
     const filteredData = data.filter(d => d.METRIC === "speed_fines");
 
-    // ---- 2. Aggregate by YEAR ----
     const yearlyRaw = d3.rollups(
         filteredData,
         v => {
             const fines = d3.sum(v, d => d.FINES);
-            const arrests = d3.sum(v, d => d.ARRESTS);
-            const charges = d3.sum(v, d => d.CHARGES);
-            const severe = arrests + charges;
-            const total = fines + severe;
-
-            return {
-                finesRaw: fines,
-                severeRaw: severe,
-                total
-            };
+            const severe = d3.sum(v, d => d.ARRESTS) + d3.sum(v, d => d.CHARGES);
+            return { fines, severe };
         },
         d => d.YEAR
     )
-    .map(([year, v]) => ({
+    .map(([year, values]) => ({
         year: +year,
-        ...v
+        ...values
     }))
     .sort((a, b) => d3.ascending(a.year, b.year));
 
-    // ---- 3. Convert to per 1000 (ratio-based) ----
+    // convert to per 100
     const yearly = yearlyRaw.map(d => {
-        const denom = d.total === 0 ? 1 : d.total; // avoid division by zero  
-
+        const finesCount = d.fines || 0;
+        const severeCount = d.severe || 0;
         return {
             year: d.year,
-            finesRaw: d.finesRaw,
-            severeRaw: d.severeRaw,
-            finesPer1000: (d.finesRaw / denom) * 1000,
-            severePer1000: (d.severeRaw / denom) * 1000
+            finesRaw: finesCount,
+            severeRaw: severeCount,
+            finesPer100: finesCount / 100,
+            severe: severeCount
         };
     });
 
-    // ---- 4. Stack keys ----
-    const keys = ["finesPer1000", "severePer1000"];
+    // ---- 2. Stack keys (per 100 fines) ----
+    const keys = ["severe", "finesPer100"];
 
     const stack = d3.stack()
-        .keys(keys)
-        .order(d3.stackOrderNone)
-        .offset(d3.stackOffsetNone);
+    .keys(keys)
+    .order(d3.stackOrderNone)
+    .offset(d3.stackOffsetNone);
 
     const series = stack(yearly);
 
-    // ---- 5. Setup SVG ----
+    // ---- 3. SVG container ----
     const container = d3.select("#viz-temporal-trend");
     const width = container.node().clientWidth;
     const height = 350;
@@ -62,59 +52,70 @@ async function drawTemporalTrend() {
         .attr("width", width)
         .attr("height", height);
 
-    const margin = { top: 30, right: 40, bottom: 40, left: 50 };
+    const margin = { top: 30, right:50, bottom: 45, left: 50 };
     const chartWidth = width - margin.left - margin.right;
     const chartHeight = height - margin.top - margin.bottom;
 
     const g = svg.append("g")
         .attr("transform", `translate(${margin.left},${margin.top})`);
 
-    // ---- 6. Scales ----
+    // ---- 4. Scales ----
     const x = d3.scaleLinear()
         .domain(d3.extent(yearly, d => d.year))
         .range([0, chartWidth]);
 
+    const maxPer1000 = d3.max(yearly, d => d.severe + d.finesPer100);
     const y = d3.scaleLinear()
-        .domain([0, d3.max(yearly, d => d.finesPer1000 + d.severePer1000)])
-        .nice()
+        .domain([0, maxPer1000 * 1.1])
         .range([chartHeight, 0]);
 
     const color = d3.scaleOrdinal()
         .domain(keys)
-        .range(["#3182bd", "#e6550d"]); // blue fines, orange severe
+        .range(["#e6550d", "#3182bd"]); // severePer1000 (orange), finesPer1000 (blue)
 
-    // ---- 7. Area generator ----
+    // ---- 5. Area generator ----
     const area = d3.area()
         .x(d => x(d.data.year))
         .y0(d => y(d[0]))
         .y1(d => y(d[1]));
 
-    // ---- 8. Draw stacked layers ----
+    // ---- 6. Draw layers ----
     g.selectAll(".layer")
         .data(series)
         .join("path")
         .attr("class", "layer")
         .attr("d", area)
         .attr("fill", d => color(d.key))
-        .attr("opacity", d => d.key === "finesPer1000" ? 0.55 : 0.75);
+        .attr("opacity", d => d.key === "finesPer100" ? 0.45 : 0.85);
 
-    // ---- 9. Axes ----
+    // ---- 7. Axes ----
     g.append("g")
         .attr("transform", `translate(0,${chartHeight})`)
-        .call(d3.axisBottom(x).ticks(6).tickFormat(d3.format("d")));
+        .call(d3.axisBottom(x).ticks(6).tickFormat(d3.format("d")))
+        .append("text")
+        .attr("x", chartWidth / 2)
+        .attr("y", 30)
+        .attr("fill", "black")
+        .style("text-anchor", "middle")
+        .text("Year");
 
-    g.append("g").call(d3.axisLeft(y));
-
-    // ---- 10. Legend ----
+    g.append("g")
+        .call(d3.axisLeft(y))
+        .append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("y", 0 - margin.left)
+        .attr("x", 0 - (chartHeight / 2))
+        .attr("dy", "1em")
+        .attr("fill", "black")
+        .style("text-anchor", "middle")
+        .text("Count per 100");
+        
+    // ---- 8. Legend ----
     const legend = svg.append("g")
         .attr("transform", `translate(${margin.left},10)`);
 
-    const items = [
-        { key: "finesPer1000", label: "FINES (per 1000)" },
-        { key: "severePer1000", label: "SEVERE (per 1000)" }
-    ];
-
-    items.forEach((it, i) => {
+    const legendItems = [ { key: 'finesPer100', label: 'FINES (per 100)' }, { key: 'severe', label: 'SEVERE' } ];
+    legendItems.forEach((it, i) => {
         const row = legend.append("g")
             .attr("transform", `translate(${i * 180},0)`);
 
@@ -129,42 +130,42 @@ async function drawTemporalTrend() {
             .text(it.label);
     });
 
-    // ---- 11. Tooltip ----
-    const tooltip = d3.select("body")
-        .append("div")
-        .attr("class", "chart-tooltip")
-        .style("position", "absolute")
-        .style("background", "white")
-        .style("border", "1px solid #ccc")
-        .style("padding", "8px")
-        .style("font-size", "12px")
-        .style("display", "none");
+    // ---- Tooltip overlay ----
+    const tooltip = d3.select('body').append('div')
+        .attr('class', 'chart-tooltip')
+        .style('position', 'absolute')
+        .style('pointer-events', 'none')
+        .style('background', 'rgba(255,255,255,0.95)')
+        .style('border', '1px solid #ccc')
+        .style('padding', '8px')
+        .style('font-size', '12px')
+        .style('border-radius', '4px')
+        .style('display', 'none');
 
     const bisect = d3.bisector(d => d.year).left;
 
-    g.append("rect")
-        .attr("width", chartWidth)
-        .attr("height", chartHeight)
-        .attr("fill", "transparent")
-        .on("mousemove", event => {
-            const [mx] = d3.pointer(event);
-            const xVal = x.invert(mx);
-            let i = bisect(yearly, xVal);
-            if (i > 0 && (xVal - yearly[i - 1].year) < (yearly[i].year - xVal)) {
-                i = i - 1;
-            }
+    const overlay = g.append('rect')
+        .attr('width', chartWidth)
+        .attr('height', chartHeight)
+        .attr('fill', 'transparent')
+        .on('mousemove', (event) => {
+            const [mx, my] = d3.pointer(event);
+            const x0 = x.invert(mx);
+            let i = bisect(yearly, x0);
+            if (i >= yearly.length) i = yearly.length - 1;
+            if (i > 0 && (i === 0 || (x0 - yearly[i-1].year) < (yearly[i].year - x0))) i = i - 1;
             const d = yearly[i];
+            if (!d) return;
 
-            tooltip.style("display", "block")
-                .style("left", event.pageX + 12 + "px")
-                .style("top", event.pageY + 12 + "px")
-                .html(`
-                    <strong>Year:</strong> ${d.year}<br/>
-                    <strong>FINES:</strong> ${d.finesRaw} (${d.finesPer1000.toFixed(2)} per 1000)<br/>
-                    <strong>SEVERE:</strong> ${d.severeRaw} (${d.severePer1000.toFixed(2)} per 1000)
-                `);
+            tooltip.style('display', 'block')
+                .html(`<strong>Year:</strong> ${d.year}<br/>
+                       <strong>FINES:</strong> ${d.finesRaw} (${d.finesPer100.toFixed(2)} per 100)<br/>
+                       <strong>SEVERE:</strong> ${d.severeRaw} (${d.severe.toFixed(2)})`)
+                .style('left', (event.pageX + 12) + 'px')
+                .style('top', (event.pageY + 12) + 'px');
         })
-        .on("mouseout", () => tooltip.style("display", "none"));
+        .on('mouseover', () => tooltip.style('display', 'block'))
+        .on('mouseout', () => tooltip.style('display', 'none'));
 }
 
 drawTemporalTrend();
