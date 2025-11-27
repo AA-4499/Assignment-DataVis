@@ -5,13 +5,13 @@
     // Clear existing content to prevent duplicates on reload
     container.selectAll('*').remove();
 
-    // Ensure the container stacks items vertically so the filter sits on top of the map
-    container.style('display', 'flex').style('flex-direction', 'column');
+    // REMOVED: container.style('display', 'flex').style('flex-direction', 'column');
+    // The CSS .visualization-container handles the layout now.
 
     // metric fixed for this page
     const metric = 'unlicensed_driving';
 
-    // 1. Place the filter list (control UI) inside the container first (at the top)
+    // 1. Place the filter list (control UI). CSS will position it on top.
     const control = container.append('div').attr('class','map-control');
     control.append('label').attr('for','age-select').text('Select age group: ');
     const ageSelect = control.append('select').attr('id','age-select');
