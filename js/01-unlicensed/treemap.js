@@ -26,14 +26,23 @@
     // Group for zooming content
     const contentGroup = svg.append('g');
 
-    // Background click to reset zoom
-    svg.on('click', () => {
+    // State for zoom
+    let active = d3.select(null);
+
+    function reset() {
+        active = d3.select(null);
         contentGroup.transition().duration(750).attr("transform", "");
-    });
+    }
+
+    // Background click to reset zoom
+    svg.on('click', reset);
 
     const tooltip = d3.select('body').append('div').attr('class','choropleth-tooltip').style('opacity',0).style('pointer-events','none');
 
     function renderTreemap(selectedYear){
+        // Reset zoom when changing data/year
+        reset();
+
         contentGroup.selectAll('g.treemap-node').remove();
         let root;
         if(selectedYear==='Average'){
@@ -69,6 +78,11 @@
         nodes.on('click', function(event, d) {
             event.stopPropagation(); // Prevent triggering background reset
             
+            // If clicking the already active node, zoom out
+            if (active.node() === this) return reset();
+
+            active = d3.select(this);
+
             const dx = d.x1 - d.x0;
             const dy = d.y1 - d.y0;
             const x = (d.x0 + d.x1) / 2;
