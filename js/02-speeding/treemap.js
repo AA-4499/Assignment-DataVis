@@ -17,8 +17,14 @@
     yearSelect.selectAll('option').data(years).join('option').attr('value',d=>d).text(d=>d);
 
     const width=1000, height=600;
-    const svg = container.append('svg').attr('viewBox',`0 0 ${width} ${height}`).style('width','100%').style('height','auto');
-    const tooltip = d3.select('body').append('div').attr('class','choropleth-tooltip').style('opacity',0).style('pointer-events','none');
+    const svg = container.append('svg')
+        .attr('viewBox',`0 0 ${width} ${height}`)
+        .style('width','100%').style('height','auto');
+    const tooltip = d3.select('body')
+        .append('div')
+        .attr('class','choropleth-tooltip')
+        .style('opacity',0)
+        .style('pointer-events','none');
     const defs = svg.append('defs');
 
     function renderTreemap(selectedYear){
