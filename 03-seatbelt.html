@@ -52,8 +52,8 @@
                 <h2>4. Temporal Trend of Severity</h2>
                 <p class="section-description">How has the balance between FINES and more severe legal actions (ARRESTS and CHARGES) changed over time for seatbelt infringements, and does this trend correlate with changes in enforcement volume?</p>
             </div>
-            <div class="visualization-container" id="viz-temporal-trend">
-                <p class="placeholder-text">Visualization: Temporal Enforcement Trends</p>
+            <div class="visualization-container" id="viz-temporal-trend" aria-label="Stacked Area: ">
+                <!-- stackedareachart.js will append the SVG here -->
             </div>
         </section>
 
@@ -79,5 +79,7 @@
     <script src="https://unpkg.com/topojson-client@3/dist/topojson-client.min.js"></script>
     <script src="js/03-seatbelt/choropleth.js"></script>
     <script src="js/03-seatbelt/treemap.js"></script>
+    <script src="js/03-seatbelt/stackareachart.js"></script>
+    <script src="js/03-seatbelt/groupedbarchart.js"></script>
 </body>
 </html>
