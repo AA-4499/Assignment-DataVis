@@ -1,13 +1,13 @@
-// Scatter plot comparison: Speed Fines vs Other Metrics
+// Stacked bar chart: Arrests and Charges by Offence Type
 d3.csv("data/police_enforcement_2024_fines.csv").then(data => {
     
     // Aggregate by METRIC
     const metricsData = d3.rollups(
         data,
         v => ({
-            fines: d3.sum(v, d => +d.FINES),
             arrests: d3.sum(v, d => +d.ARRESTS),
-            charges: d3.sum(v, d => +d.CHARGES)
+            charges: d3.sum(v, d => +d.CHARGES),
+            fines: d3.sum(v, d => +d.FINES)
         }),
         d => d.METRIC
     )
@@ -16,23 +16,19 @@ d3.csv("data/police_enforcement_2024_fines.csv").then(data => {
         ...values
     }));
 
-    // Separate speed_fines from others
-    const speedFinesData = metricsData.find(d => d.metric === "speed_fines");
-    const otherMetrics = metricsData.filter(d => d.metric !== "speed_fines");
+    // Filter to only show specified metrics
+    const chartData = metricsData.filter(d => 
+        d.metric === "non_wearing_seatbelts" || 
+        d.metric === "speed_fines" || 
+        d.metric === "unlicensed_driving"
+    );
 
-    // Prepare scatter plot data
-    const scatterData = otherMetrics.map(d => ({
-        metric: d.metric,
-        fines: d.fines,
-        arrests: d.arrests,
-        charges: d.charges,
-        speedFines: speedFinesData.fines,
-        speedArrests: speedFinesData.arrests,
-        speedCharges: speedFinesData.charges
-    }));
+    // Sort in consistent order
+    const metricOrder = ["speed_fines", "non_wearing_seatbelts", "unlicensed_driving"];
+    chartData.sort((a, b) => metricOrder.indexOf(a.metric) - metricOrder.indexOf(b.metric));
 
     // SVG setup
-    const margin = { top: 50, right: 40, bottom: 80, left: 70 };
+    const margin = { top: 50, right: 30, bottom: 100, left: 70 };
     const containerWidth = d3.select("#viz-offence-comparison").node().clientWidth;
     const width = containerWidth - margin.left - margin.right;
     const height = 450 - margin.top - margin.bottom;
@@ -42,10 +38,24 @@ d3.csv("data/police_enforcement_2024_fines.csv").then(data => {
 
     const svg = container.append("svg")
         .attr("width", containerWidth)
-        .attr("height", height + margin.top + margin.bottom);
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
 
-    // Create two scatter plots side by side
-    const plotWidth = (width / 2) - 20;
+    // Scales
+    const x = d3.scaleBand()
+        .domain(chartData.map(d => d.metric))
+        .range([0, width])
+        .padding(0.3);
+
+    const y = d3.scaleLinear()
+        .domain([0, d3.max(chartData, d => d.arrests + d.charges)])
+        .range([height, 0]);
+
+    // Color scale - highlight speed_fines differently
+    const color = d3.scaleOrdinal()
+        .domain(["arrests", "charges"])
+        .range(["#e6550d", "#31a354"]); // Orange for arrests, Green for charges
 
     // Tooltip
     const tooltip = d3.select("body").append("div")
@@ -59,202 +69,92 @@ d3.csv("data/police_enforcement_2024_fines.csv").then(data => {
         .style("border-radius", "4px")
         .style("display", "none");
 
-    // Color scales
-    const colorArrest = "#e6550d"; // Orange for arrests
-    const colorCharge = "#31a354"; // Green for charges
+    // Stack data
+    const stack = d3.stack()
+        .keys(["arrests", "charges"]);
 
-    // Plot 1: Speed Fines (reference)
-    const g1 = svg.append("g")
-        .attr("transform", `translate(${margin.left}, ${margin.top})`);
+    const stackedData = stack(chartData);
 
-    const x1 = d3.scaleLinear()
-        .domain([0, d3.max(scatterData, d => d.speedFines)])
-        .range([0, plotWidth]);
-
-    const y1 = d3.scaleLinear()
-        .domain([0, d3.max([
-            d3.max(scatterData, d => d.speedArrests),
-            d3.max(scatterData, d => d.speedCharges)
-        ])])
-        .range([height, 0]);
-
-    // Speed Fines - Arrests
-    g1.selectAll(".arrests-speed")
-        .data(scatterData)
+    // Draw stacked bars
+    svg.selectAll("g.layer")
+        .data(stackedData)
         .enter()
-        .append("circle")
-        .attr("class", "arrests-speed")
-        .attr("cx", d => x1(d.speedFines))
-        .attr("cy", d => y1(d.speedArrests))
-        .attr("r", 6)
-        .attr("fill", colorArrest)
-        .attr("opacity", 0.7)
+        .append("g")
+        .attr("class", "layer")
+        .attr("fill", d => color(d.key))
+        .selectAll("rect")
+        .data(d => d)
+        .enter()
+        .append("rect")
+        .attr("x", d => x(d.data.metric))
+        .attr("y", d => y(d[1]))
+        .attr("height", d => y(d[0]) - y(d[1]))
+        .attr("width", x.bandwidth())
+        .attr("opacity", 0.85)
         .on("mouseover", function(event, d) {
+            const key = d3.select(this.parentNode).datum().key;
+            const value = d[1] - d[0];
+            const metric = d.data.metric;
+            
             tooltip.style("display", "block")
-                .html(`<strong>Speed Fines</strong><br/>
-                       Metric: ${d.metric}<br/>
-                       Fines: ${d.speedFines.toLocaleString()}<br/>
-                       Arrests: ${d.speedArrests.toLocaleString()}`)
+                .html(`<strong>${metric.replace(/_/g, " ").toUpperCase()}</strong><br/>
+                       <strong>${key.charAt(0).toUpperCase() + key.slice(1)}:</strong> ${value.toLocaleString()}<br/>
+                       <strong>Total Arrests:</strong> ${d.data.arrests.toLocaleString()}<br/>
+                       <strong>Total Charges:</strong> ${d.data.charges.toLocaleString()}`)
                 .style("left", (event.pageX + 12) + "px")
                 .style("top", (event.pageY + 12) + "px");
         })
         .on("mouseout", () => tooltip.style("display", "none"));
 
-    // Speed Fines - Charges
-    g1.selectAll(".charges-speed")
-        .data(scatterData)
-        .enter()
-        .append("circle")
-        .attr("class", "charges-speed")
-        .attr("cx", d => x1(d.speedFines))
-        .attr("cy", d => y1(d.speedCharges))
-        .attr("r", 6)
-        .attr("fill", colorCharge)
-        .attr("opacity", 0.7)
-        .on("mouseover", function(event, d) {
-            tooltip.style("display", "block")
-                .html(`<strong>Speed Fines</strong><br/>
-                       Metric: ${d.metric}<br/>
-                       Fines: ${d.speedFines.toLocaleString()}<br/>
-                       Charges: ${d.speedCharges.toLocaleString()}`)
-                .style("left", (event.pageX + 12) + "px")
-                .style("top", (event.pageY + 12) + "px");
-        })
-        .on("mouseout", () => tooltip.style("display", "none"));
-
-    // Axes for plot 1
-    g1.append("g")
+    // X axis
+    svg.append("g")
         .attr("transform", `translate(0, ${height})`)
-        .call(d3.axisBottom(x1))
+        .call(d3.axisBottom(x))
         .selectAll("text")
-        .style("font-size", "11px");
+        .attr("transform", "rotate(-25)")
+        .style("text-anchor", "end");
 
-    g1.append("text")
-        .attr("x", plotWidth / 2)
-        .attr("y", 40)
-        .attr("fill", "black")
-        .style("text-anchor", "middle")
-        .text("Speed Fines");
+    // Y axis
+    svg.append("g")
+        .call(d3.axisLeft(y));
 
-    g1.append("g")
-        .call(d3.axisLeft(y1))
-        .append("text")
+    // Y axis label
+    svg.append("text")
         .attr("transform", "rotate(-90)")
         .attr("y", 0 - margin.left)
         .attr("x", 0 - (height / 2))
         .attr("dy", "1em")
-        .attr("fill", "black")
         .style("text-anchor", "middle")
-        .text("Arrests / Charges");
-
-    g1.append("text")
-        .attr("x", plotWidth / 2)
-        .attr("y", -20)
-        .style("text-anchor", "middle")
-        .style("font-weight", "bold")
-        .text("Speed Fines Comparison");
-
-    // Plot 2: Other Metrics
-    const g2 = svg.append("g")
-        .attr("transform", `translate(${margin.left + plotWidth + 40}, ${margin.top})`);
-
-    const x2 = d3.scaleLinear()
-        .domain([0, d3.max(scatterData, d => d.fines)])
-        .range([0, plotWidth]);
-
-    const y2 = d3.scaleLinear()
-        .domain([0, d3.max([
-            d3.max(scatterData, d => d.arrests),
-            d3.max(scatterData, d => d.charges)
-        ])])
-        .range([height, 0]);
-
-    // Other Metrics - Arrests
-    g2.selectAll(".arrests-other")
-        .data(scatterData)
-        .enter()
-        .append("circle")
-        .attr("class", "arrests-other")
-        .attr("cx", d => x2(d.fines))
-        .attr("cy", d => y2(d.arrests))
-        .attr("r", 6)
-        .attr("fill", colorArrest)
-        .attr("opacity", 0.7)
-        .on("mouseover", function(event, d) {
-            tooltip.style("display", "block")
-                .html(`<strong>${d.metric}</strong><br/>
-                       Fines: ${d.fines.toLocaleString()}<br/>
-                       Arrests: ${d.arrests.toLocaleString()}`)
-                .style("left", (event.pageX + 12) + "px")
-                .style("top", (event.pageY + 12) + "px");
-        })
-        .on("mouseout", () => tooltip.style("display", "none"));
-
-    // Other Metrics - Charges
-    g2.selectAll(".charges-other")
-        .data(scatterData)
-        .enter()
-        .append("circle")
-        .attr("class", "charges-other")
-        .attr("cx", d => x2(d.fines))
-        .attr("cy", d => y2(d.charges))
-        .attr("r", 6)
-        .attr("fill", colorCharge)
-        .attr("opacity", 0.7)
-        .on("mouseover", function(event, d) {
-            tooltip.style("display", "block")
-                .html(`<strong>${d.metric}</strong><br/>
-                       Fines: ${d.fines.toLocaleString()}<br/>
-                       Charges: ${d.charges.toLocaleString()}`)
-                .style("left", (event.pageX + 12) + "px")
-                .style("top", (event.pageY + 12) + "px");
-        })
-        .on("mouseout", () => tooltip.style("display", "none"));
-
-    // Axes for plot 2
-    g2.append("g")
-        .attr("transform", `translate(0, ${height})`)
-        .call(d3.axisBottom(x2))
-        .selectAll("text")
-        .style("font-size", "11px");
-
-    g2.append("text")
-        .attr("x", plotWidth / 2)
-        .attr("y", 40)
-        .attr("fill", "black")
-        .style("text-anchor", "middle")
-        .text("Fines");
-
-    g2.append("g")
-        .call(d3.axisLeft(y2))
-        .append("text")
-        .attr("transform", "rotate(-90)")
-        .attr("y", 0 - margin.left)
-        .attr("x", 0 - (height / 2))
-        .attr("dy", "1em")
-        .attr("fill", "black")
-        .style("text-anchor", "middle")
-        .text("Arrests / Charges");
-
-    g2.append("text")
-        .attr("x", plotWidth / 2)
-        .attr("y", -20)
-        .style("text-anchor", "middle")
-        .style("font-weight", "bold")
-        .text("Other Offences Comparison");
+        .text("Count");
 
     // Legend
     const legend = svg.append("g")
-        .attr("transform", `translate(${margin.left + width/2 - 80}, ${height + margin.top + 50})`);
+        .attr("transform", `translate(0, -30)`);
 
-    const items = [
-        { label: "Arrests", color: colorArrest },
-        { label: "Charges", color: colorCharge }
-    ];
+    ["arrests", "charges"].forEach((key, i) => {
+        const row = legend.append("g")
+            .attr("transform", `translate(0, ${i * 20})`);
 
-    items.forEach((d, i) => {
-        const row = legend.append("g").attr("transform", `translate(${i * 120}, 0)`);
-        row.append("circle").attr("r", 6).attr("fill", d.color).attr("opacity", 0.7);
-        row.append("text").attr("x", 15).attr("y", 5).style("font-size", "12px").text(d.label);
+        row.append("rect")
+            .attr("width", 12)
+            .attr("height", 12)
+            .attr("fill", color(key))
+            .attr("opacity", 0.85);
+
+        row.append("text")
+            .attr("x", 18)
+            .attr("y", 10)
+            .style("font-size", "12px")
+            .text(key.charAt(0).toUpperCase() + key.slice(1));
     });
+
+    // Highlight note for non_wearing seatbelts
+    svg.append("text")
+        .attr("x", width / 2)
+        .attr("y", -25)
+        .style("text-anchor", "middle")
+        .style("font-size", "13px")
+        .style("fill", "#e6550d")
+        .style("font-weight", "bold")
+        .text("(Speed_fines highlighted in first bar)");
 });

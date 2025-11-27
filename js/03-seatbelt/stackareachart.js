@@ -28,13 +28,13 @@ async function drawTemporalTrend() {
             year: d.year,
             finesRaw: finesCount,
             severeRaw: severeCount,
-            finesPer1000: finesCount / 1000,
-            severePer1000: severeCount / 1000
+            finesPer10: finesCount / 10,
+            severe: severeCount
         };
     });
 
     // ---- 2. Stack keys (per 1000 fines) ----
-    const keys = ["severePer1000", "finesPer1000"];
+    const keys = ["severe", "finesPer10"];
 
     const stack = d3.stack()
     .keys(keys)
@@ -52,7 +52,7 @@ async function drawTemporalTrend() {
         .attr("width", width)
         .attr("height", height);
 
-    const margin = { top: 30, right: 40, bottom: 40, left: 50 };
+    const margin = { top: 30, right:50, bottom: 45, left: 50 };
     const chartWidth = width - margin.left - margin.right;
     const chartHeight = height - margin.top - margin.bottom;
 
@@ -64,7 +64,7 @@ async function drawTemporalTrend() {
         .domain(d3.extent(yearly, d => d.year))
         .range([0, chartWidth]);
 
-    const maxPer1000 = d3.max(yearly, d => d.severePer1000 + d.finesPer1000);
+    const maxPer1000 = d3.max(yearly, d => d.severe + d.finesPer10);
     const y = d3.scaleLinear()
         .domain([0, maxPer1000 * 1.1])
         .range([chartHeight, 0]);
@@ -86,7 +86,7 @@ async function drawTemporalTrend() {
         .attr("class", "layer")
         .attr("d", area)
         .attr("fill", d => color(d.key))
-        .attr("opacity", d => d.key === "finesPer1000" ? 0.45 : 0.85);
+        .attr("opacity", d => d.key === "finesPer10" ? 0.45 : 0.85);
 
     // ---- 7. Axes ----
     g.append("g")
@@ -108,13 +108,13 @@ async function drawTemporalTrend() {
         .attr("dy", "1em")
         .attr("fill", "black")
         .style("text-anchor", "middle")
-        .text("Count per 1000");
+        .text("Count per 10");
         
     // ---- 8. Legend ----
     const legend = svg.append("g")
         .attr("transform", `translate(${margin.left},10)`);
 
-    const legendItems = [ { key: 'finesPer1000', label: 'FINES (per 1000)' }, { key: 'severePer1000', label: 'SEVERE (per 1000)' } ];
+    const legendItems = [ { key: 'finesPer10', label: 'FINES (per 10)' }, { key: 'severe', label: 'SEVERE' } ];
     legendItems.forEach((it, i) => {
         const row = legend.append("g")
             .attr("transform", `translate(${i * 180},0)`);
@@ -159,8 +159,8 @@ async function drawTemporalTrend() {
 
             tooltip.style('display', 'block')
                 .html(`<strong>Year:</strong> ${d.year}<br/>
-                       <strong>FINES:</strong> ${d.finesRaw} (${d.finesPer1000.toFixed(2)} per 1000)<br/>
-                       <strong>SEVERE:</strong> ${d.severeRaw} (${d.severePer1000.toFixed(2)} per 1000)`)
+                       <strong>FINES:</strong> ${d.finesRaw} (${d.finesPer10.toFixed(2)} per 10)<br/>
+                       <strong>SEVERE:</strong> ${d.severeRaw} (${d.severe.toFixed(2)})`)
                 .style('left', (event.pageX + 12) + 'px')
                 .style('top', (event.pageY + 12) + 'px');
         })

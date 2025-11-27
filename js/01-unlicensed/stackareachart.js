@@ -39,7 +39,7 @@ async function drawTemporalTrend() {
         .attr("width", width)
         .attr("height", height);
 
-    const margin = { top: 30, right: 40, bottom: 40, left: 50 };
+    const margin = { top: 30, right: 50, bottom: 40, left: 50 };
     const chartWidth = width - margin.left - margin.right;
     const chartHeight = height - margin.top - margin.bottom;
 
@@ -59,13 +59,25 @@ async function drawTemporalTrend() {
         .domain(keys)
         .range(["#31A354", "#6BAED6"]);
 
-    // ---- 5. Area generator ----
+    // ---- 5. Tooltip ----
+    const tooltip = d3.select("body").append("div")
+        .attr("class", "chart-tooltip")
+        .style("position", "absolute")
+        .style("pointer-events", "none")
+        .style("background", "rgba(255,255,255,0.95)")
+        .style("border", "1px solid #ccc")
+        .style("padding", "10px")
+        .style("font-size", "12px")
+        .style("border-radius", "4px")
+        .style("display", "none");
+
+    // ---- 6. Area generator ----
     const area = d3.area()
         .x(d => x(d.data.year))
         .y0(d => y(d[0]))
         .y1(d => y(d[1]));
 
-    // ---- 6. Draw layers ----
+    // ---- 7. Draw layers ----
     g.selectAll(".layer")
         .data(series)
         .join("path")
@@ -74,7 +86,38 @@ async function drawTemporalTrend() {
         .attr("fill", d => color(d.key))
         .attr("opacity", d => d.key === "fines" ? 0.45 : 0.85);
 
-    // ---- 7. Axes ----
+    // ---- 8. Add interactive overlay for tooltip ----
+    const bisectYear = d3.bisector(d => d.year).left;
+    
+    g.append("rect")
+        .attr("width", chartWidth)
+        .attr("height", chartHeight)
+        .attr("fill", "none")
+        .attr("pointer-events", "all")
+        .on("mousemove", function(event) {
+            const [xMouse] = d3.pointer(event, this);
+            const year = Math.round(x.invert(xMouse));
+            const yearData = yearly.find(d => d.year === year);
+            
+            if (yearData) {
+                const finesValue = yearData.fines;
+                const severeValue = yearData.severe;
+                const totalValue = finesValue + severeValue;
+                
+                tooltip.style("display", "block")
+                    .html(`<strong>Year: ${year}</strong><br/>
+                           <strong>FINES:</strong> ${finesValue.toLocaleString()}<br/>
+                           <strong>SEVERE (Arrests + Charges):</strong> ${severeValue.toLocaleString()}<br/>
+                           <strong>Total:</strong> ${totalValue.toLocaleString()}`)
+                    .style("left", (event.pageX + 12) + "px")
+                    .style("top", (event.pageY + 12) + "px");
+            }
+        })
+        .on("mouseout", function() {
+            tooltip.style("display", "none");
+        });
+
+    // ---- 9. Axes ----
     g.append("g")
         .attr("transform", `translate(0,${chartHeight})`)
         .call(d3.axisBottom(x).ticks(6).tickFormat(d3.format("d")));
@@ -82,7 +125,7 @@ async function drawTemporalTrend() {
     g.append("g")
         .call(d3.axisLeft(y));
         
-    // ---- 8. Legend ----
+    // ---- 10. Legend ----
     const legend = svg.append("g")
         .attr("transform", `translate(${margin.left},10)`);
 
