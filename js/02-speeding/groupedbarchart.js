@@ -36,7 +36,7 @@ d3.csv("data/police_enforcement_2024_fines.csv").then(data => {
     );
 
     // Sort in consistent order
-    const metricOrder = ["unlicensed_driving", "speed_fines", "non_wearing_seatbelts"];
+    const metricOrder = ["speed_fines", "unlicensed_driving", "non_wearing_seatbelts"];
     chartData.sort((a, b) => metricOrder.indexOf(a.metric) - metricOrder.indexOf(b.metric));
 
     // SVG setup
@@ -172,5 +172,5 @@ d3.csv("data/police_enforcement_2024_fines.csv").then(data => {
         .style("font-size", "13px")
         .style("fill", "#e6550d")
         .style("font-weight", "bold")
-        .text("(Unlicensed Driving highlighted in first bar)");
+        .text("(Speed fines highlighted in first bar)");
 });
