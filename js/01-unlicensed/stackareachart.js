@@ -2,23 +2,30 @@
 async function drawTemporalTrend() {
     const data = await d3.csv("data/police_enforcement_2024_fines.csv", d3.autoType);
 
-    // ---- 1. Prepare aggregated data by YEAR ----
+    // ---- 1. Prepare aggregated data by MONTH ----
     const filteredData = data.filter(d => d.METRIC === "unlicensed_driving");
 
-    const yearly = d3.rollups(
+    const monthly = d3.rollups(
         filteredData,
         v => {
-            const fines = d3.sum(v, d => d.FINES);
-            const severe = d3.sum(v, d => d.ARRESTS) + d3.sum(v, d => d.CHARGES);
+            const fines = d3.sum(v, d => +d.FINES);
+            const severe = d3.sum(v, d => +d.ARRESTS) + d3.sum(v, d => +d.CHARGES);
             return { fines, severe };
         },
-        d => d.YEAR
+        d => {
+            // Parse START_DATE (format: M/D/YYYY)
+            const parts = d.START_DATE.split("/");
+            const month = parseInt(parts[0]);
+            const year = parseInt(parts[2]);
+            return `${year}-${String(month).padStart(2, "0")}`;
+        }
     )
-    .map(([year, values]) => ({
-        year: +year,
+    .map(([monthStr, values]) => ({
+        month: monthStr,
+        date: new Date(monthStr + "-01"),
         ...values
     }))
-    .sort((a, b) => d3.ascending(a.year, b.year));
+    .sort((a, b) => a.date - b.date);
 
     // ---- 2. Stack keys ----
     const keys = ["severe", "fines"];
@@ -28,7 +35,7 @@ async function drawTemporalTrend() {
     .order(d3.stackOrderNone)
     .offset(d3.stackOffsetNone);
 
-    const series = stack(yearly);
+    const series = stack(monthly);
 
     // ---- 3. SVG container ----
     const container = d3.select("#viz-temporal-trend");
@@ -39,7 +46,7 @@ async function drawTemporalTrend() {
         .attr("width", width)
         .attr("height", height);
 
-    const margin = { top: 30, right: 50, bottom: 40, left: 50 };
+    const margin = { top: 30, right: 55, bottom: 40, left: 50 };
     const chartWidth = width - margin.left - margin.right;
     const chartHeight = height - margin.top - margin.bottom;
 
@@ -47,12 +54,12 @@ async function drawTemporalTrend() {
         .attr("transform", `translate(${margin.left},${margin.top})`);
 
     // ---- 4. Scales ----
-    const x = d3.scaleLinear()
-        .domain(d3.extent(yearly, d => d.year))
+    const x = d3.scaleTime()
+        .domain(d3.extent(monthly, d => d.date))
         .range([0, chartWidth]);
 
     const y = d3.scaleLinear()
-        .domain([0, d3.max(yearly, d => d.fines + d.severe)])
+        .domain([0, d3.max(monthly, d => d.fines + d.severe)])
         .range([chartHeight, 0]);
 
     const color = d3.scaleOrdinal()
@@ -73,7 +80,7 @@ async function drawTemporalTrend() {
 
     // ---- 6. Area generator ----
     const area = d3.area()
-        .x(d => x(d.data.year))
+        .x(d => x(d.data.date))
         .y0(d => y(d[0]))
         .y1(d => y(d[1]));
 
@@ -87,8 +94,6 @@ async function drawTemporalTrend() {
         .attr("opacity", d => d.key === "fines" ? 0.45 : 0.85);
 
     // ---- 8. Add interactive overlay for tooltip ----
-    const bisectYear = d3.bisector(d => d.year).left;
-    
     g.append("rect")
         .attr("width", chartWidth)
         .attr("height", chartHeight)
@@ -96,22 +101,31 @@ async function drawTemporalTrend() {
         .attr("pointer-events", "all")
         .on("mousemove", function(event) {
             const [xMouse] = d3.pointer(event, this);
-            const year = Math.round(x.invert(xMouse));
-            const yearData = yearly.find(d => d.year === year);
+            const dateHover = x.invert(xMouse);
             
-            if (yearData) {
-                const finesValue = yearData.fines;
-                const severeValue = yearData.severe;
-                const totalValue = finesValue + severeValue;
-                
-                tooltip.style("display", "block")
-                    .html(`<strong>Year: ${year}</strong><br/>
-                           <strong>FINES:</strong> ${finesValue.toLocaleString()}<br/>
-                           <strong>SEVERE (Arrests + Charges):</strong> ${severeValue.toLocaleString()}<br/>
-                           <strong>Total:</strong> ${totalValue.toLocaleString()}`)
-                    .style("left", (event.pageX + 12) + "px")
-                    .style("top", (event.pageY + 12) + "px");
+            // Find closest month
+            let closest = monthly[0];
+            let minDiff = Math.abs(dateHover - closest.date);
+            
+            for (let d of monthly) {
+                const diff = Math.abs(dateHover - d.date);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    closest = d;
+                }
             }
+            
+            const finesValue = closest.fines;
+            const severeValue = closest.severe;
+            const totalValue = finesValue + severeValue;
+            
+            tooltip.style("display", "block")
+                .html(`<strong>Month: ${closest.month}</strong><br/>
+                       <strong>FINES:</strong> ${finesValue.toLocaleString()}<br/>
+                       <strong>SEVERE (Arrests + Charges):</strong> ${severeValue.toLocaleString()}<br/>
+                       <strong>Total:</strong> ${totalValue.toLocaleString()}`)
+                .style("left", (event.pageX + 12) + "px")
+                .style("top", (event.pageY + 12) + "px");
         })
         .on("mouseout", function() {
             tooltip.style("display", "none");
@@ -120,7 +134,7 @@ async function drawTemporalTrend() {
     // ---- 9. Axes ----
     g.append("g")
         .attr("transform", `translate(0,${chartHeight})`)
-        .call(d3.axisBottom(x).ticks(6).tickFormat(d3.format("d")));
+        .call(d3.axisBottom(x).ticks(d3.timeMonth).tickFormat(d3.timeFormat("%m/%y")));
 
     g.append("g")
         .call(d3.axisLeft(y));
