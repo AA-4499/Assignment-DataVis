@@ -1,4 +1,4 @@
-// Stacked bar chart: Arrests and Charges by Offence Type
+// Stacked bar chart: Percentage of Arrests vs Charges by Offence Type
 d3.csv("data/police_enforcement_2024_fines.csv").then(data => {
     
     // Aggregate by METRIC
@@ -11,10 +11,22 @@ d3.csv("data/police_enforcement_2024_fines.csv").then(data => {
         }),
         d => d.METRIC
     )
-    .map(([metric, values]) => ({
-        metric,
-        ...values
-    }));
+    .map(([metric, values]) => {
+        const totalSevere = values.arrests + values.charges;
+        // Prevent division by zero
+        const safeTotal = totalSevere === 0 ? 1 : totalSevere;
+        
+        return {
+            metric,
+            // Keep raw counts for tooltip
+            arrestsCount: values.arrests,
+            chargesCount: values.charges,
+            // Normalize values to percentages (0.0 to 1.0) for the chart
+            arrests: values.arrests / safeTotal,
+            charges: values.charges / safeTotal,
+            totalSevere: totalSevere
+        };
+    });
 
     // Filter to only show specified metrics
     const chartData = metricsData.filter(d => 
@@ -24,7 +36,7 @@ d3.csv("data/police_enforcement_2024_fines.csv").then(data => {
     );
 
     // Sort in consistent order
-    const metricOrder = ["non_wearing_seatbelts", "speed_fines", "unlicensed_driving"];
+    const metricOrder = ["unlicensed_driving", "speed_fines", "non_wearing_seatbelts"];
     chartData.sort((a, b) => metricOrder.indexOf(a.metric) - metricOrder.indexOf(b.metric));
 
     // SVG setup
@@ -48,11 +60,12 @@ d3.csv("data/police_enforcement_2024_fines.csv").then(data => {
         .range([0, width])
         .padding(0.3);
 
+    // Y scale is now fixed to 0% - 100%
     const y = d3.scaleLinear()
-        .domain([0, d3.max(chartData, d => d.arrests + d.charges)])
+        .domain([0, 1])
         .range([height, 0]);
 
-    // Color scale - highlight speed_fines differently
+    // Color scale
     const color = d3.scaleOrdinal()
         .domain(["arrests", "charges"])
         .range(["#e6550d", "#31a354"]); // Orange for arrests, Green for charges
@@ -69,7 +82,7 @@ d3.csv("data/police_enforcement_2024_fines.csv").then(data => {
         .style("border-radius", "4px")
         .style("display", "none");
 
-    // Stack data
+    // Stack data (using the normalized percentage keys)
     const stack = d3.stack()
         .keys(["arrests", "charges"]);
 
@@ -92,15 +105,18 @@ d3.csv("data/police_enforcement_2024_fines.csv").then(data => {
         .attr("width", x.bandwidth())
         .attr("opacity", 0.85)
         .on("mouseover", function(event, d) {
-            const key = d3.select(this.parentNode).datum().key;
-            const value = d[1] - d[0];
+            const key = d3.select(this.parentNode).datum().key; // "arrests" or "charges"
+            const pctValue = d[1] - d[0];
             const metric = d.data.metric;
+            
+            // Retrieve original count based on key
+            const count = key === "arrests" ? d.data.arrestsCount : d.data.chargesCount;
             
             tooltip.style("display", "block")
                 .html(`<strong>${metric.replace(/_/g, " ").toUpperCase()}</strong><br/>
-                       <strong>${key.charAt(0).toUpperCase() + key.slice(1)}:</strong> ${value.toLocaleString()}<br/>
-                       <strong>Total Arrests:</strong> ${d.data.arrests.toLocaleString()}<br/>
-                       <strong>Total Charges:</strong> ${d.data.charges.toLocaleString()}`)
+                       <strong>${key.charAt(0).toUpperCase() + key.slice(1)}:</strong> ${d3.format(".1%")(pctValue)}<br/>
+                       <strong>Count:</strong> ${count.toLocaleString()}<br/>
+                       <strong>Total Severe Outcomes:</strong> ${d.data.totalSevere.toLocaleString()}`)
                 .style("left", (event.pageX + 12) + "px")
                 .style("top", (event.pageY + 12) + "px");
         })
@@ -109,23 +125,23 @@ d3.csv("data/police_enforcement_2024_fines.csv").then(data => {
     // X axis
     svg.append("g")
         .attr("transform", `translate(0, ${height})`)
-        .call(d3.axisBottom(x))
+        .call(d3.axisBottom(x).tickFormat(d => d.replace(/_/g, " ")))
         .selectAll("text")
         .attr("transform", "rotate(-25)")
         .style("text-anchor", "end");
 
-    // Y axis
+    // Y axis (formatted as percentage)
     svg.append("g")
-        .call(d3.axisLeft(y));
+        .call(d3.axisLeft(y).tickFormat(d3.format(".0%")));
 
     // Y axis label
     svg.append("text")
         .attr("transform", "rotate(-90)")
-        .attr("y", 0 - margin.left)
+        .attr("y", 0 - margin.left + 20)
         .attr("x", 0 - (height / 2))
         .attr("dy", "1em")
         .style("text-anchor", "middle")
-        .text("Count");
+        .text("Percentage of Severe Outcomes");
 
     // Legend
     const legend = svg.append("g")
@@ -133,7 +149,7 @@ d3.csv("data/police_enforcement_2024_fines.csv").then(data => {
 
     ["arrests", "charges"].forEach((key, i) => {
         const row = legend.append("g")
-            .attr("transform", `translate(0, ${i * 20})`);
+            .attr("transform", `translate(${i * 100}, 0)`);
 
         row.append("rect")
             .attr("width", 12)
@@ -156,5 +172,5 @@ d3.csv("data/police_enforcement_2024_fines.csv").then(data => {
         .style("font-size", "13px")
         .style("fill", "#e6550d")
         .style("font-weight", "bold")
-        .text("(Non-wearing Seatbelts highlighted in first bar)");
+        .text("(Unlicensed Driving highlighted in first bar)");
 });
